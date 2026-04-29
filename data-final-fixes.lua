@@ -20,14 +20,22 @@ local function get_next_signal_layer()
   return name
 end
 
--- Factorio 2.0 replaced the single "curved-rail" with several new rail types.
--- Full concrete rail type list: straight-rail, curved-rail-a, curved-rail-b,
--- half-diagonal-rail, elevated-straight-rail, elevated-curved-rail-a/b,
--- elevated-half-diagonal-rail, legacy-straight-rail, legacy-curved-rail, rail-ramp.
--- Rather than hardcoding, detect dynamically: a type is a rail if its name contains
--- "rail" but not "signal" (covers all base-game and most modded rail types).
+-- Factorio 2.0 rail entity types all extend RailPrototype (EntityWithOwnerPrototype).
+-- Several other data.raw keys contain "rail" but are NOT physical rail entities:
+--   rail-planner  → RailPlannerPrototype extends ItemPrototype   (item, no collision_mask)
+--   rail-remnants → RailRemnantsPrototype extends CorpsePrototype (corpse, not a track)
+--   rail-support  → RailSupportPrototype extends EntityWithOwnerPrototype (pillar, not RailPrototype)
+-- Excluding these prevents cmu.get_mask from crashing on types absent from default_masks.
+local NON_RAIL_ENTITY_TYPES = {
+  ["rail-planner"]  = true,
+  ["rail-remnants"] = true,
+  ["rail-support"]  = true,
+}
+
 local function is_rail_type(type_name)
-  return type_name:find("rail") ~= nil and type_name:find("signal") == nil
+  return type_name:find("rail") ~= nil
+    and type_name:find("signal") == nil
+    and not NON_RAIL_ENTITY_TYPES[type_name]
 end
 
 local function get_rail_types()
@@ -43,23 +51,34 @@ end
 local rail_types = get_rail_types()
 local colliding_signal_layers = {}  -- set: layer_name -> true
 
+-- cmu.get_mask falls back to get_default_mask(entity.type) when collision_mask is nil.
+-- get_default_mask errors on types absent from collision-mask-defaults (e.g. modded items).
+-- This wrapper returns nil instead of throwing for unknown types.
+local function safe_get_mask(entity)
+  if entity.collision_mask then
+    return entity.collision_mask
+  end
+  local ok, mask = pcall(cmu.get_mask, entity)
+  return ok and mask or nil
+end
+
 -- Collect all layers that signals share with any rail type.
 local function get_all_collisions()
   for _, signal_type in pairs({"rail-signal", "rail-chain-signal"}) do
     if not data.raw[signal_type] then goto continue_signal end
     for _, signal in pairs(data.raw[signal_type]) do
-      local signal_mask = cmu.get_mask(signal)
+      local signal_mask = safe_get_mask(signal)
       if signal_mask and signal_mask.layers then
         for layer_name in pairs(signal_mask.layers) do
           for rail_type in pairs(rail_types) do
-            if data.raw[rail_type] then
-              for _, rail in pairs(data.raw[rail_type]) do
-                local rail_mask = cmu.get_mask(rail)
-                if rail_mask and rail_mask.layers and rail_mask.layers[layer_name] then
-                  colliding_signal_layers[layer_name] = true
-                end
+            if not data.raw[rail_type] then goto continue_rail_type end
+            for _, rail in pairs(data.raw[rail_type]) do
+              local rail_mask = safe_get_mask(rail)
+              if rail_mask and rail_mask.layers and rail_mask.layers[layer_name] then
+                colliding_signal_layers[layer_name] = true
               end
             end
+            ::continue_rail_type::
           end
         end
       end
@@ -126,9 +145,9 @@ local function prototypes_collide(prototype_type)
   for _, prototype1 in pairs(data.raw[prototype_type]) do
     for _, prototype2 in pairs(data.raw[prototype_type]) do
       if prototype1 ~= prototype2 then
-        local mask1 = cmu.get_mask(prototype1)
-        local mask2 = cmu.get_mask(prototype2)
-        if not cmu.masks_collide(mask1, mask2) then
+        local mask1 = safe_get_mask(prototype1)
+        local mask2 = safe_get_mask(prototype2)
+        if mask1 and mask2 and not cmu.masks_collide(mask1, mask2) then
           log(tostring(prototype1.name) .. " did not collide with " .. tostring(prototype2.name))
           return false
         end
