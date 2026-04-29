@@ -3,12 +3,17 @@ Version: 1.1.0
 Date: 2026.04.29
   Changes:
     - Updated mod target to Factorio 2.0
-    - Replaced collision-mask-util require with inline implementation compatible with Factorio 2.0
-    - Collision layers now registered as CollisionLayerPrototype via data:extend before use
-    - Collision mask operations rewritten to use named-layer format ({ layers = { ["name"] = true } })
-    - Added nil / type guards on all data.raw accesses
-    - Fixed variable scoping bug in edit_non_rail_segment (new_layer is now properly local)
-    - Fixed prototypes_collide parameter shadowing; added self-comparison guard
+    - Collision layers now registered as CollisionLayerPrototype via data:extend (required by 2.0)
+    - Layer names now use underscores per Factorio 2.0 documentation recommendation
+    - Rail type detection is now dynamic: covers all types whose name contains "rail" but not
+      "signal" (handles straight-rail, curved-rail-a/b, half-diagonal-rail, elevated-* variants,
+      legacy-* variants, and modded rail types — curved-rail no longer exists in 2.0)
+    - Replaced static copy_all_rails with per-entity backup/restore covering all rail types
+    - Collision mask operations now use 2.0 API: mask.layers[name]=true/nil directly
+      (add_layer/remove_layer/mask_contains_layer were removed from collision-mask-util in 2.0)
+    - cmu.get_mask no longer mutates entities in 2.0; explicit collision_mask assignment added
+      before modification to ensure changes persist
+    - Verification now checks all detected rail types, not just straight-rail/curved-rail
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.4
 Date: 2023.04.04
