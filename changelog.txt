@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2026.04.29
+  Changes:
+    - Updated mod target to Factorio 2.0
+    - Replaced collision-mask-util require with inline implementation compatible with Factorio 2.0
+    - Collision layers now registered as CollisionLayerPrototype via data:extend before use
+    - Collision mask operations rewritten to use named-layer format ({ layers = { ["name"] = true } })
+    - Added nil / type guards on all data.raw accesses
+    - Fixed variable scoping bug in edit_non_rail_segment (new_layer is now properly local)
+    - Fixed prototypes_collide parameter shadowing; added self-comparison guard
+---------------------------------------------------------------------------------------------------
 Version: 1.0.4
 Date: 2023.04.04
   Bugfixes:

@@ -1,11 +1,11 @@
 {
   "name": "Space-Efficient-Rail-Signals",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "title": "Space Efficient Rail Signals you can place (almost) anywhere",
   "author": "WristWatch/OceanPhantom",
   "homepage": "https://github.com/Ocean-Phantom/Space-Efficient-Rail-Signals",
   "description": "Changes the Collision Mask for Rail Signals and Chain Signals to be independent of Rails. This allows freer placement, for those builds with low spacing, or converting between LHD and RHD when not otherwise possible.\n Should work for any modded signals and signals in disguise as well. \n\n Disclaimer: the mod author takes no responsibility for any problems or difficulty with debugging intersections made using this mod.",
-  "factorio_version": "1.1",
+  "factorio_version": "2.0",
   "dependencies": [
     "base",
     "? RailSignalPlanner",
